@@ -1,7 +1,7 @@
 ---
 - name: Configure Linux system with Zsh, Oh My Zsh, Powerlevel10k, and custom aliases/functions
   hosts: all
-  become: true
+  become: false
   tasks:
 
     - name: Install required tools
