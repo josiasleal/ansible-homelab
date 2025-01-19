@@ -71,17 +71,27 @@
         clone: yes
       when: not powerlevel10k_stat.stat.exists
 
-     
+    - name: Check if Zsh plugins exist
+      stat:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item }}"
+      register: plugin_stat
+      loop:
+        - zsh-autosuggestions
+        - zsh-completions
+        - zsh-syntax-highlighting
+        - fast-syntax-highlighting
+      loop_control:
+        label: "{{ item }}"
+      vars:
+        plugin_results: "{{ plugin_stat.results }}"
+
     - name: Install Zsh plugins
       git:
         repo: "https://github.com/zsh-users/{{ item }}.git"
         dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item }}"
         clone: yes
-      loop:
-        - zsh-autosuggestions
-        - zsh-completions
-        - zsh-syntax-highlighting
-      when: not (ansible_facts['ansible_env']['HOME'] + "/.oh-my-zsh/custom/plugins/{{ item }}") | file
+      with_items: "{{ plugin_results | selectattr('stat.exists', 'equalto', false) | map(attribute='item') | list }}"
+
 
     - name: Download .p10k.zsh, aliases.zsh, and functions.zsh
       get_url:
