@@ -58,18 +58,21 @@
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
       args:
         creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
-    
+      become: false
+
     - name: Check if Powerlevel10k theme exists
       stat:
         path: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
       register: powerlevel10k_stat
+      become: false
 
     - name: Install Powerlevel10k theme
       git:
         repo: https://github.com/romkatv/powerlevel10k.git
         dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
-        clone: yes
+      clone: yes
       when: not powerlevel10k_stat.stat.exists
+      become: false
 
     - name: Check if Zsh plugins exist
       stat:
@@ -80,27 +83,32 @@
         - zsh-completions
         - zsh-syntax-highlighting
         - fast-syntax-highlighting
-      loop_control:
-        label: "{{ item }}"
-      vars:
-        plugin_results: "{{ plugin_stat.results }}"
+      become: false
 
     - name: Install Zsh plugins
       git:
         repo: "https://github.com/zsh-users/{{ item }}.git"
         dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item }}"
         clone: yes
-      with_items: "{{ plugin_results | selectattr('stat.exists', 'equalto', false) | map(attribute='item') | list }}"
+      loop: "{{ plugin_stat.results | selectattr('stat.exists', 'equalto', false) | map(attribute='item') | list }}"
+      become: false
 
+    - name: Check if custom Zsh files exist
+      stat:
+        path: "{{ item.dest }}"
+      register: custom_zsh_files
+      loop:
+        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
+        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
+        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
+      become: false
 
     - name: Download .p10k.zsh, aliases.zsh, and functions.zsh
       get_url:
         url: "{{ item.url }}"
         dest: "{{ item.dest }}"
-      loop:
-        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
-        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
-        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
+      loop: "{{ custom_zsh_files.results | selectattr('stat.exists', 'equalto', false) | map(attribute='item') | list }}"
+      become: false
 
     - name: Configure .zshrc
       copy:
@@ -116,17 +124,10 @@
           [[ ! -f "$HOME/.p10k.zsh" ]] || source "$HOME/.p10k.zsh"
       become: false
 
-    - name: Install fzf if not installed
-      package:
-        name: fzf
-        state: present
-      when: ansible_facts.packages['fzf'] is not defined
-
     - name: Change default shell to Zsh
-      user:
-        name: "{{ ansible_user }}"
-        shell: "{{ ansible_env.HOME }}/.oh-my-zsh"
-      when: ansible_facts['ansible_env']['SHELL'] != ansible_env.HOME + "/.zsh"
+      shell: chsh -s $(which zsh) "{{ ansible_user }}"
+      when: ansible_facts.shell != "/usr/bin/zsh"
+      become: false
 
     - name: Append preserved history to new history files
       block:
@@ -136,3 +137,4 @@
         - name: Append zsh history to zsh history
           shell: cat {{ ansible_env.HOME }}/.tmp_history/zsh_history >> {{ ansible_env.HOME }}/.zsh_history
           when: ansible_facts['ansible_env']['HOME'] is defined and lookup('file', ansible_env.HOME + '/.tmp_history/zsh_history') is not none
+      become: false
