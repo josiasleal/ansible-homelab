@@ -2,7 +2,6 @@
 - name: Configure Linux system with Zsh, Oh My Zsh, Powerlevel10k, and custom aliases/functions
   hosts: all
   remote_user: intergalactic
-  become: true
   tasks:
 
     - name: Install required tools
@@ -16,6 +15,7 @@
           - neofetch
           - btop
         state: present
+      become: true
 
     - name: Clean up existing Zsh configurations
       file:
