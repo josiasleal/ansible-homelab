@@ -1,7 +1,8 @@
 ---
 - name: Configure Linux system with Zsh, Oh My Zsh, Powerlevel10k, and custom aliases/functions
   hosts: all
-  become: false
+  remote_user: intergalactic
+  become: true
   tasks:
 
     - name: Install required tools
