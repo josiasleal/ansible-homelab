@@ -59,12 +59,18 @@
       args:
         creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
     
+    - name: Check if Powerlevel10k theme exists
+      stat:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
+      register: powerlevel10k_stat
+
     - name: Install Powerlevel10k theme
       git:
         repo: https://github.com/romkatv/powerlevel10k.git
         dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
         clone: yes
-      when: not (ansible_facts['ansible_env']['HOME'] + "/.oh-my-zsh/custom/themes/powerlevel10k") | file
+      when: not powerlevel10k_stat.stat.exists
+
      
     - name: Install Zsh plugins
       git:
