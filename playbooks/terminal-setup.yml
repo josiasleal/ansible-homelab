@@ -1,0 +1,122 @@
+---
+- name: Configure Linux system with Zsh, Oh My Zsh, Powerlevel10k, and custom aliases/functions
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Install required tools
+      package:
+        name:
+          - git
+          - curl
+          - zsh
+          - fzf
+          - wget
+          - neofetch
+          - btop
+        state: present
+
+    - name: Clean up existing Zsh configurations
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ ansible_env.HOME }}/.oh-my-zsh"
+        - "{{ ansible_env.HOME }}/.zsh"
+      become: false
+
+    - name: Clean up existing Powerlevel10k configuration
+      file:
+        path: "{{ ansible_env.HOME }}/.p10k.zsh"
+        state: absent
+      become: false
+
+    - name: Create Zsh custom directory
+      file:
+        path: "{{ ansible_env.HOME }}/.zsh"
+        state: directory
+      become: false
+
+    - name: Preserve shell history
+      file:
+        path: "{{ ansible_env.HOME }}/.tmp_history"
+        state: directory
+      become: false
+
+    - name: Backup .bash_history if it exists
+      command: mv {{ ansible_env.HOME }}/.bash_history {{ ansible_env.HOME }}/.tmp_history/bash_history
+      when: ansible_facts['ansible_env']['HOME'] is defined and lookup('file', ansible_env.HOME + '/.bash_history') is not none
+      become: false
+
+    - name: Backup .zsh_history if it exists
+      command: mv {{ ansible_env.HOME }}/.zsh_history {{ ansible_env.HOME }}/.tmp_history/zsh_history
+      when: ansible_facts['ansible_env']['HOME'] is defined and lookup('file', ansible_env.HOME + '/.zsh_history') is not none
+      become: false
+
+    - name: Install Oh My Zsh
+      shell: |
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      args:
+        creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
+    
+    - name: Install Powerlevel10k theme
+      git:
+        repo: https://github.com/romkatv/powerlevel10k.git
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
+        clone: yes
+      when: not (ansible_facts['ansible_env']['HOME'] + "/.oh-my-zsh/custom/themes/powerlevel10k") | file
+     
+    - name: Install Zsh plugins
+      git:
+        repo: "https://github.com/zsh-users/{{ item }}.git"
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item }}"
+        clone: yes
+      loop:
+        - zsh-autosuggestions
+        - zsh-completions
+        - zsh-syntax-highlighting
+      when: not (ansible_facts['ansible_env']['HOME'] + "/.oh-my-zsh/custom/plugins/{{ item }}") | file
+
+    - name: Download .p10k.zsh, aliases.zsh, and functions.zsh
+      get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
+        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
+        - { url: "https://raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
+
+    - name: Configure .zshrc
+      copy:
+        dest: "{{ ansible_env.HOME }}/.zshrc"
+        content: |
+          # Oh-My-Zsh configuration
+          export ZSH="{{ ansible_env.HOME }}/.oh-my-zsh"
+          ZSH_THEME="powerlevel10k/powerlevel10k"
+          plugins=(zsh-autosuggestions zsh-completions zsh-syntax-highlighting)
+          source "$ZSH/oh-my-zsh.sh"
+          source "{{ ansible_env.HOME }}/.zsh/aliases.zsh"
+          source "{{ ansible_env.HOME }}/.zsh/functions.zsh"
+          [[ ! -f "$HOME/.p10k.zsh" ]] || source "$HOME/.p10k.zsh"
+      become: false
+
+    - name: Install fzf if not installed
+      package:
+        name: fzf
+        state: present
+      when: ansible_facts.packages['fzf'] is not defined
+
+    - name: Change default shell to Zsh
+      user:
+        name: "{{ ansible_user }}"
+        shell: "{{ ansible_env.HOME }}/.oh-my-zsh"
+      when: ansible_facts['ansible_env']['SHELL'] != ansible_env.HOME + "/.zsh"
+
+    - name: Append preserved history to new history files
+      block:
+        - name: Append bash history to zsh history
+          shell: cat {{ ansible_env.HOME }}/.tmp_history/bash_history >> {{ ansible_env.HOME }}/.zsh_history
+          when: ansible_facts['ansible_env']['HOME'] is defined and lookup('file', ansible_env.HOME + '/.tmp_history/bash_history') is not none
+        - name: Append zsh history to zsh history
+          shell: cat {{ ansible_env.HOME }}/.tmp_history/zsh_history >> {{ ansible_env.HOME }}/.zsh_history
+          when: ansible_facts['ansible_env']['HOME'] is defined and lookup('file', ansible_env.HOME + '/.tmp_history/zsh_history') is not none
