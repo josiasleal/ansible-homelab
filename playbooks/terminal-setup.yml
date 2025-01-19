@@ -70,7 +70,6 @@
       git:
         repo: https://github.com/romkatv/powerlevel10k.git
         dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
-      clone: yes
       when: not powerlevel10k_stat.stat.exists
       become: false
 
