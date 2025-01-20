@@ -98,9 +98,9 @@
         path: "{{ item.dest }}"
       register: custom_zsh_files
       loop:
-        - { url: "https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
-        - { url: "https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
-        - { url: "https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
+        - { url: "https://{{ github_token_classic }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
+        - { url: "https://{{ github_token_classic }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
+        - { url: "https://{{ github_token_classic }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
       become: false
 
     - name: Download .p10k.zsh, aliases.zsh, and functions.zsh
