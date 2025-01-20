@@ -56,7 +56,7 @@
 
     - name: Install Oh My Zsh
       shell: |
-        sh -c "$(curl -fsSL https://josiasleal:{{ github_token }}@raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        sh -c "$(curl -fsSL https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
       args:
         creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
       become: false
@@ -98,9 +98,9 @@
         path: "{{ item.dest }}"
       register: custom_zsh_files
       loop:
-        - { url: "https://josiasleal:{{ github_token }}@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
-        - { url: "https://josiasleal:{{ github_token }}@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
-        - { url: "https://josiasleal:{{ github_token }}@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
+        - { url: "https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/.p10k.zsh", dest: "{{ ansible_env.HOME }}/.p10k.zsh" }
+        - { url: "https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/refs/heads/master/.zsh_homelab/aliases.zsh", dest: "{{ ansible_env.HOME }}/.zsh/aliases.zsh" }
+        - { url: "https://{{ github_token }}:x-oauth-basic@raw.githubusercontent.com/josiasleal/dotfiles/master/.zsh_homelab/functions.zsh", dest: "{{ ansible_env.HOME }}/.zsh/functions.zsh" }
       become: false
 
     - name: Download .p10k.zsh, aliases.zsh, and functions.zsh
