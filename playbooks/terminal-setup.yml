@@ -91,8 +91,6 @@
             curl -H "Authorization: token {{ github_token }}"
             -o "{{ ansible_env.HOME }}/.zsh/{{ item }}"
             https://raw.githubusercontent.com/josiasleal/dotfiles/master/.zsh_homelab/{{ item }}
-          args:
-            warn: false
           loop:
             - .p10k.zsh
             - aliases.zsh
