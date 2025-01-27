@@ -1,14 +1,14 @@
 ---
 - name: Install Incus on Ubuntu 24.04 from Zabbly repository
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Remove any existing Incus installation
       apt:
         name: incus
         state: absent
         purge: yes
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Ensure required packages are installed
       apt:
@@ -19,19 +19,17 @@
         state: present
         update_cache: yes
 
-    - name: Add Zabbly repository key
-      apt_key:
+    - name: Download Zabbly repository GPG key
+      ansible.builtin.get_url:
         url: https://pkgs.zabbly.com/key.asc
-        state: present
+        dest: /usr/share/keyrings/zabbly-incus-keyring.gpg
+        mode: '0644'
 
-    - name: Add Zabbly repository
+    - name: Add Zabbly repository securely
       apt_repository:
-        repo: "deb [arch=amd64] https://pkgs.zabbly.com/incus/stable ./"
+        repo: "deb [signed-by=/usr/share/keyrings/zabbly-incus-keyring.gpg] https://pkgs.zabbly.com/incus/stable ./"
         state: present
         filename: zabbly-incus
-
-    - name: Update apt cache
-      apt:
         update_cache: yes
 
     - name: Install Incus from Zabbly repository
@@ -43,3 +41,7 @@
       apt:
         autoclean: yes
         autoremove: yes
+
+    - name: Ensure Incus is not initialized
+      command: incus admin init --preseed < /dev/null
+      when: false  # This task will never run, ensuring no initialization
