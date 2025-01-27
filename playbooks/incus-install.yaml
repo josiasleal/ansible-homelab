@@ -7,16 +7,16 @@
     incus_listen_address: "192.168.1.90:8443"
     zabbly_repo_deb: "deb [signed-by=/usr/share/keyrings/packages@zabbly.com.gpg] https://zabbly.github.io/incus/ stable main"
   tasks:
-    - name: Check if Incus is already installed
-      command: dpkg -s incus
-      register: incus_installed
-      ignore_errors: true
-      changed_when: false
+    # - name: Check if Incus is already installed
+    #   command: dpkg -s incus
+    #   register: incus_installed
+    #   ignore_errors: true
+    #   changed_when: false
 
-    - name: Fail if Incus is already installed
-      fail:
-        msg: "Incus is already installed. Skipping installation."
-      when: incus_installed.rc == 0
+    # - name: Debug message if Incus is already installed
+    #   debug:
+    #     msg: "Incus is already installed. Skipping installation."
+    #   when: incus_installed.rc == 0
 
     - name: Update apt cache
       apt:
