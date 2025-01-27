@@ -2,6 +2,10 @@
 - name: Install Incus on Ubuntu 24.04 from Zabbly repository
   hosts: all
   become: true
+  vars:
+    incus_repo: "ppa:incus/stable"
+    zabbly_key_url: "https://repo.zabbly.com/gpg.key"
+    zabbly_repo: "deb [arch={{ dpkg_architecture.stdout }}] https://repo.zabbly.com/ubuntu stable main"
   tasks:
     - name: Remove any existing Incus installation
       apt:
@@ -18,23 +22,51 @@
           - software-properties-common
         state: present
         update_cache: yes
-
-    - name: Download Zabbly repository GPG key
-      ansible.builtin.get_url:
-        url: https://pkgs.zabbly.com/key.asc
-        dest: /usr/share/keyrings/zabbly-incus-keyring.gpg
-        mode: '0644'
-
-    - name: Add Zabbly repository securely
-      apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/zabbly-incus-keyring.gpg] https://pkgs.zabbly.com/incus/stable ./"
+    
+    - name: Add Incus package repository
+      ansible.builtin.apt_repository:
+        repo: "{{ incus_repo }}"
         state: present
-        filename: zabbly-incus
-        update_cache: yes
+      when: not uninstall
 
-    - name: Install Incus from Zabbly repository
-      apt:
-        name: incus
+    - name: Create apt keyring path
+      ansible.builtin.file:
+        path: "/etc/apt/keyrings"
+        state: directory
+        mode: '0755'
+      when: not uninstall
+
+    - name: Add Zabbly repository key
+      ansible.builtin.get_url:
+        url: "{{ zabbly_key_url }}"
+        dest: "/etc/apt/keyrings/zabbly.gpg"
+        mode: '0644'
+      when: not uninstall
+
+    - name: Get DPKG architecture
+      ansible.builtin.command:
+        cmd: dpkg --print-architecture
+      register: dpkg_architecture
+      when: not uninstall
+
+    - name: Add Zabbly package source
+      ansible.builtin.apt_repository:
+        repo: "{{ zabbly_repo }}"
+        filename: "zabbly"
+        state: present
+      when: not uninstall
+
+    - name: Update apt
+      ansible.builtin.apt:
+        update_cache: yes
+        force_apt_get: yes
+      when: not uninstall
+
+    - name: Install Incus and ZFS tools
+      ansible.builtin.apt:
+        name:
+          - incus
+          - zfsutils-linux
         state: present
 
     - name: Clean apt cache
