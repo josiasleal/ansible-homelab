@@ -1,0 +1,85 @@
+---
+- name: Install Incus on Ubuntu 24.04 from Zabbly repository
+  hosts: all
+  become: true
+  vars:
+    zabbly_repo_url: "https://zabbly.github.io/incus/keys/packages@zabbly.com.gpg"
+    incus_listen_address: "192.168.1.90:8443"
+    zabbly_repo_deb: "deb [signed-by=/usr/share/keyrings/packages@zabbly.com.gpg] https://zabbly.github.io/incus/ stable main"
+  tasks:
+    - name: Check if Incus is already installed
+      command: dpkg -s incus
+      register: incus_installed
+      ignore_errors: true
+      changed_when: false
+
+    - name: Fail if Incus is already installed
+      fail:
+        msg: "Incus is already installed. Skipping installation."
+      when: incus_installed.rc == 0
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: incus_installed.rc != 0
+
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - gnupg
+          - software-properties-common
+        state: present
+      when: incus_installed.rc != 0
+
+    - name: Add Zabbly repository GPG key
+      apt_key:
+        url: "{{ zabbly_repo_url }}"
+        keyring: /usr/share/keyrings/packages@zabbly.com.gpg
+      when: incus_installed.rc != 0
+
+    - name: Add Zabbly repository
+      apt_repository:
+        repo: "{{ zabbly_repo_deb }}"
+        state: present
+        filename: zabbly-incus
+      when: incus_installed.rc != 0
+
+    - name: Install Incus from Zabbly repository
+      apt:
+        name: incus
+        state: present
+        update_cache: yes
+      when: incus_installed.rc != 0
+
+    - name: Add the current user to the incus group
+      user:
+        name: "{{ ansible_user }}"
+        groups: incus
+        append: yes
+      when: incus_installed.rc != 0
+
+    - name: Reboot the system to apply group changes
+      reboot:
+        msg: "Reboot to apply group changes"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+      when: incus_installed.rc != 0
+
+    - name: Wait for the system to come back online
+      wait_for_connection:
+        timeout: 300
+      when: incus_installed.rc != 0
+
+    # - name: Initialize Incus (optional)
+    #   command: incus init --auto
+    #   when: incus_installed.rc != 0 and incus_initialized is not defined
+
+    # - name: Ensure Incus is running
+    #   service:
+    #     name: incus
+    #     state: started
+    #     enabled: yes
+    #   when: incus_installed.rc != 0
