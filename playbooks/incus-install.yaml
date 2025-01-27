@@ -3,8 +3,8 @@
   hosts: all
   become: true
   vars:
-    zabbly_key_url: "https://repo.zabbly.com/gpg.key"
-    zabbly_repo: "deb [arch={{ dpkg_architecture.stdout }}] https://repo.zabbly.com/ubuntu stable main"
+    zabbly_key_url: "https://pkgs.zabbly.com/key.asc"
+    zabbly_repo: "deb [arch={{ dpkg_architecture.stdout }}] https://pkgs.zabbly.com/incus/stable ./"
   tasks:
     - name: Remove any existing Incus installation
       apt:
@@ -59,5 +59,4 @@
         autoremove: yes
 
     - name: Ensure Incus is not initialized
-      command: incus admin init --preseed < /dev/null
-      when: false  # This task will never run, ensuring no initialization
+      command: incus admin init --preseed < /dev
