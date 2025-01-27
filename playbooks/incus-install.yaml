@@ -3,7 +3,6 @@
   hosts: all
   become: true
   vars:
-    incus_repo: "ppa:incus/stable"
     zabbly_key_url: "https://repo.zabbly.com/gpg.key"
     zabbly_repo: "deb [arch={{ dpkg_architecture.stdout }}] https://repo.zabbly.com/ubuntu stable main"
   tasks:
@@ -22,11 +21,6 @@
           - software-properties-common
         state: present
         update_cache: yes
-    
-    - name: Add Incus package repository
-      ansible.builtin.apt_repository:
-        repo: "{{ incus_repo }}"
-        state: present
 
     - name: Create apt keyring path
       ansible.builtin.file:
@@ -50,11 +44,7 @@
         repo: "{{ zabbly_repo }}"
         filename: "zabbly"
         state: present
-
-    - name: Update apt
-      ansible.builtin.apt:
         update_cache: yes
-        force_apt_get: yes
 
     - name: Install Incus and ZFS tools
       ansible.builtin.apt:
