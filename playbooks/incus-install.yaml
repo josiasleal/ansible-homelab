@@ -1,10 +1,7 @@
 ---
-- name: Install Incus on Ubuntu 24.04 from Zabbly repository
+- name: Install Incus on Ubuntu 24.04 from Zabbly stable repository
   hosts: all
   become: true
-  vars:
-    zabbly_key_url: "https://pkgs.zabbly.com/key.asc"
-    zabbly_repo: "deb [arch={{ dpkg_architecture.stdout }}] https://pkgs.zabbly.com/incus/stable ./"
   tasks:
     - name: Remove any existing Incus installation
       apt:
@@ -22,35 +19,26 @@
         state: present
         update_cache: yes
 
-    - name: Create apt keyring path
-      ansible.builtin.file:
-        path: "/etc/apt/keyrings"
-        state: directory
-        mode: '0755'
-
-    - name: Add Zabbly repository key
-      ansible.builtin.get_url:
-        url: "{{ zabbly_key_url }}"
-        dest: "/etc/apt/keyrings/zabbly.gpg"
-        mode: '0644'
-
-    - name: Get DPKG architecture
-      ansible.builtin.command:
-        cmd: dpkg --print-architecture
-      register: dpkg_architecture
-
-    - name: Add Zabbly package source
-      ansible.builtin.apt_repository:
-        repo: "{{ zabbly_repo }}"
-        filename: "zabbly"
+    - name: Add Zabbly Incus repository GPG key
+      ansible.builtin.apt_key:
+        url: https://pkgs.zabbly.com/key.asc
         state: present
+
+    - name: Add Zabbly Incus repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ ansible_architecture }}] https://pkgs.zabbly.com/incus/stable ./"
+        state: present
+        filename: zabbly-incus
         update_cache: yes
 
-    - name: Install Incus and ZFS tools
-      ansible.builtin.apt:
-        name:
-          - incus
-          - zfsutils-linux
+    - name: Install Incus
+      apt:
+        name: incus
+        state: present
+
+    - name: Install ZFS tools (optional, recommended for storage backend)
+      apt:
+        name: zfsutils-linux
         state: present
 
     - name: Clean apt cache
@@ -59,4 +47,5 @@
         autoremove: yes
 
     - name: Ensure Incus is not initialized
-      command: incus admin init --preseed < /dev
+      command: incus admin init --preseed < /dev/null
+      when: false  # This task will never run, ensuring no initialization
