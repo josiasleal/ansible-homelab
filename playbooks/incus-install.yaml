@@ -27,40 +27,34 @@
       ansible.builtin.apt_repository:
         repo: "{{ incus_repo }}"
         state: present
-      when: not uninstall
 
     - name: Create apt keyring path
       ansible.builtin.file:
         path: "/etc/apt/keyrings"
         state: directory
         mode: '0755'
-      when: not uninstall
 
     - name: Add Zabbly repository key
       ansible.builtin.get_url:
         url: "{{ zabbly_key_url }}"
         dest: "/etc/apt/keyrings/zabbly.gpg"
         mode: '0644'
-      when: not uninstall
 
     - name: Get DPKG architecture
       ansible.builtin.command:
         cmd: dpkg --print-architecture
       register: dpkg_architecture
-      when: not uninstall
 
     - name: Add Zabbly package source
       ansible.builtin.apt_repository:
         repo: "{{ zabbly_repo }}"
         filename: "zabbly"
         state: present
-      when: not uninstall
 
     - name: Update apt
       ansible.builtin.apt:
         update_cache: yes
         force_apt_get: yes
-      when: not uninstall
 
     - name: Install Incus and ZFS tools
       ansible.builtin.apt:
