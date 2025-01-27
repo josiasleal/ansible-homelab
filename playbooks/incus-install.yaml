@@ -1,5 +1,5 @@
 ---
-- name: Install Incus on Ubuntu 24.04 from Zabbly stable repository
+- name: Install Incus on Ubuntu 24.04 from Zabbly repository
   hosts: all
   become: true
   tasks:
@@ -19,16 +19,40 @@
         state: present
         update_cache: yes
 
-    - name: Add Zabbly Incus repository GPG key
-      ansible.builtin.apt_key:
-        url: https://pkgs.zabbly.com/key.asc
-        state: present
+    - name: Verify Zabbly repository GPG key fingerprint
+      ansible.builtin.shell:
+        cmd: |
+          curl -fsSL https://pkgs.zabbly.com/key.asc | gpg --show-keys --fingerprint
+      register: gpg_fingerprint
+      changed_when: false
 
-    - name: Add Zabbly Incus repository
-      ansible.builtin.apt_repository:
-        repo: "deb [arch={{ ansible_architecture }}] https://pkgs.zabbly.com/incus/stable ./"
-        state: present
-        filename: zabbly-incus
+    - name: Create /etc/apt/keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Zabbly repository GPG key
+      ansible.builtin.get_url:
+        url: https://pkgs.zabbly.com/key.asc
+        dest: /etc/apt/keyrings/zabbly.asc
+        mode: '0644'
+
+    - name: Add Zabbly Incus stable repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/zabbly-incus-stable.sources
+        content: |
+          Enabled: yes
+          Types: deb
+          URIs: https://pkgs.zabbly.com/incus/stable
+          Suites: {{ ansible_distribution_release }}
+          Components: main
+          Architectures: {{ ansible_architecture }}
+          Signed-By: /etc/apt/keyrings/zabbly.asc
+        mode: '0644'
+
+    - name: Update apt cache
+      apt:
         update_cache: yes
 
     - name: Install Incus
