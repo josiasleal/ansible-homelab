@@ -2,84 +2,44 @@
 - name: Install Incus on Ubuntu 24.04 from Zabbly repository
   hosts: all
   become: true
-  vars:
-    zabbly_repo_url: "https://zabbly.github.io/incus/keys/packages@zabbly.com.gpg"
-    incus_listen_address: "192.168.1.90:8443"
-    zabbly_repo_deb: "deb [signed-by=/usr/share/keyrings/packages@zabbly.com.gpg] https://zabbly.github.io/incus/ stable main"
   tasks:
-    # - name: Check if Incus is already installed
-    #   command: dpkg -s incus
-    #   register: incus_installed
-    #   ignore_errors: true
-    #   changed_when: false
-
-    # - name: Debug message if Incus is already installed
-    #   debug:
-    #     msg: "Incus is already installed. Skipping installation."
-    #   when: incus_installed.rc == 0
-
-    - name: Update apt cache
+    - name: Remove any existing Incus installation
       apt:
-        update_cache: yes
-      when: incus_installed.rc != 0
+        name: incus
+        state: absent
+        purge: yes
+      ignore_errors: true
 
-    - name: Install dependencies
+    - name: Ensure required packages are installed
       apt:
         name:
           - curl
           - gnupg
           - software-properties-common
+          - zfsutils-linux
         state: present
-      when: incus_installed.rc != 0
+        update_cache: yes
 
-    - name: Add Zabbly repository GPG key
+    - name: Add Zabbly repository key
       apt_key:
-        url: "{{ zabbly_repo_url }}"
-        keyring: /usr/share/keyrings/packages@zabbly.com.gpg
-      when: incus_installed.rc != 0
+        url: https://pkgs.zabbly.com/key.asc
+        state: present
 
     - name: Add Zabbly repository
       apt_repository:
-        repo: "{{ zabbly_repo_deb }}"
+        repo: "deb [arch=amd64] https://pkgs.zabbly.com/incus/stable ./"
         state: present
         filename: zabbly-incus
-      when: incus_installed.rc != 0
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
     - name: Install Incus from Zabbly repository
       apt:
         name: incus
         state: present
-        update_cache: yes
-      when: incus_installed.rc != 0
 
-    - name: Add the current user to the incus group
-      user:
-        name: "{{ ansible_user }}"
-        groups: incus
-        append: yes
-      when: incus_installed.rc != 0
-
-    - name: Reboot the system to apply group changes
-      reboot:
-        msg: "Reboot to apply group changes"
-        connect_timeout: 5
-        reboot_timeout: 600
-        pre_reboot_delay: 0
-        post_reboot_delay: 30
-      when: incus_installed.rc != 0
-
-    - name: Wait for the system to come back online
-      wait_for_connection:
-        timeout: 300
-      when: incus_installed.rc != 0
-
-    # - name: Initialize Incus (optional)
-    #   command: incus init --auto
-    #   when: incus_installed.rc != 0 and incus_initialized is not defined
-
-    # - name: Ensure Incus is running
-    #   service:
-    #     name: incus
-    #     state: started
-    #     enabled: yes
-    #   when: incus_installed.rc != 0
+    - name: Ensure Incus is not initialized
+      command: incus admin init --preseed < /dev/null
+      when: false  # This task will never run, ensuring no initialization
