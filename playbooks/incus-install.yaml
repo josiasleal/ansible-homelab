@@ -57,9 +57,12 @@
 
     - name: Install Incus
       apt:
-        name: |
-          incus
-          incus-client
+        name: incus-client
+        state: present
+
+    - name: Install Incus
+      apt:
+        name: incus
         state: present
 
     - name: Install ZFS tools (optional, recommended for storage backend)
