@@ -19,13 +19,6 @@
         state: present
         update_cache: yes
 
-    - name: Verify Zabbly repository GPG key fingerprint
-      ansible.builtin.shell:
-        cmd: |
-          curl -fsSL https://pkgs.zabbly.com/key.asc | gpg --show-keys --fingerprint
-      register: gpg_fingerprint
-      changed_when: false
-
     - name: Create /etc/apt/keyrings directory
       ansible.builtin.file:
         path: /etc/apt/keyrings
@@ -55,20 +48,15 @@
       apt:
         update_cache: yes
 
-    - name: Install Incus
+    - name: Install Incus and its dependencies
       apt:
-        name: incus-client
+        name:
+          - incus
+          - incus-client
+          - incus-agent
+          - zfsutils-linux
         state: present
-
-    - name: Install Incus
-      apt:
-        name: incus
-        state: present
-
-    - name: Install ZFS tools (optional, recommended for storage backend)
-      apt:
-        name: zfsutils-linux
-        state: present
+        force_apt_get: yes
 
     - name: Clean apt cache
       apt:
