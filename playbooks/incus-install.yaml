@@ -1,14 +1,14 @@
 ---
 - name: Install Incus on Ubuntu 24.04 from Zabbly repository
   hosts: all
-  become: true
+  become: yes
   tasks:
     - name: Remove any existing Incus installation
       apt:
         name: incus
         state: absent
         purge: yes
-      ignore_errors: true
+      ignore_errors: yes
 
     - name: Ensure required packages are installed
       apt:
@@ -16,7 +16,6 @@
           - curl
           - gnupg
           - software-properties-common
-          - zfsutils-linux
         state: present
         update_cache: yes
 
@@ -40,6 +39,7 @@
         name: incus
         state: present
 
-    - name: Ensure Incus is not initialized
-      command: incus admin init --preseed < /dev/null
-      when: false  # This task will never run, ensuring no initialization
+    - name: Clean apt cache
+      apt:
+        autoclean: yes
+        autoremove: yes
